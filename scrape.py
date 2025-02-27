@@ -7,14 +7,15 @@ import os
 url = 'https://www.favikon.com/blog/top-10-most-followed-tiktok-influencers'
 response = requests.get(url)
 soup = BeautifulSoup(response.content, 'html.parser')
-all_elements = list(soup.descendants)
+all_elements = list(soup.descendants) # for indexing
 
+# Items of the main list
 items = []
 
 # Locate section that starts the list
 start_section = soup.find('h2', string=lambda text: text and 'Top 10 Most Followed on TikTok' in text)
+# Locate first section that shouldn't be included in the list
 end_scraping = soup.find('h3', string=lambda text: text and 'Also See 👀 : ' in text)
-end_secend_scrapingtion = end_scraping.find_parent()
 
 if start_section:
     container = start_section.find_parent()
@@ -35,17 +36,19 @@ if start_section:
             link = title_element.find('a')['href'] if title_element and title_element.find('a') else '#'
 
             description = ''
-            
+
             end_section = title_element.find_next('div')
-            
+
             # Terminate scraping if on "Also see"
             if not end_section or all_elements.index(end_section) >= all_elements.index(end_scraping):
                 break
             
+            # <p> Paragraph </p>
             p = title_element.find_next('p')
             while all_elements.index(p) < all_elements.index(end_section):
                 description += str(p) + '\n'
                 p = p.find_next('p')
+
             items.append({
                 'title': title,
                 'description': md(description.strip()),
@@ -83,7 +86,7 @@ for item in items:
     md_content += f"- [{item['title']}]({item_filename})\n"
     md_content += f"**Description:** {additional_info}\n\n"
 
-with open('scraped_data.md', 'w', encoding='utf-8') as f:
+with open('README.md', 'w', encoding='utf-8') as f:
     f.write(md_content)
 
 print("Markdown files created successfully.")
