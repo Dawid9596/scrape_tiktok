@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
+from googlesearch import search as ggs
 from markdownify import markdownify as md
 import os
 
@@ -9,13 +10,16 @@ response = requests.get(url)
 soup = BeautifulSoup(response.content, 'html.parser')
 all_elements = list(soup.descendants) # for indexing
 
+starting_text = 'Top 10 Most Followed on TikTok'
+excluded_text = 'Also See 👀 : '
+
 # Items of the main list
 items = []
 
 # Locate section that starts the list
-start_section = soup.find('h2', string=lambda text: text and 'Top 10 Most Followed on TikTok' in text)
+start_section = soup.find('h2', string=lambda text: text and starting_text in text)
 # Locate first section that shouldn't be included in the list
-end_scraping = soup.find('h3', string=lambda text: text and 'Also See 👀 : ' in text)
+end_scraping = soup.find('h3', string=lambda text: text and excluded_text in text)
 
 if start_section:
     container = start_section.find_parent()
@@ -57,10 +61,22 @@ if start_section:
             })
 
 def get_additional_info(query):
-    with DDGS() as ddgs:
-        results = ddgs.text(query, max_results=1)
+    no_info_message = 'No info found'
+    try:
+        with DDGS() as ddgs:
+            results = ddgs.text(ddgs.text(query, max_results=1))
+            if results:
+                result = results[0]['body'] 
+            else:
+                raise Exception(no_info_message) 
+    except:
+        try:
+            results = ggs(query, num_results=1, advanced=True)
+            result = list(results)[0].description if results else no_info_message
+        except:
+            result = no_info_message
 
-    return results[0]['body'] if results else 'No additional info found.'
+    return result
 
 # Save scraped data into markdown files
 os.makedirs('items', exist_ok=True)
